@@ -4,5 +4,10 @@
       "name": "polar.greeting",
       "type": "java.lang.String",
       "description": "Description for polar.greeting."
-  }
-] }
+    },
+    {
+      "name": "polar.testdata.enabled",
+      "type": "java.lang.String",
+      "description": "Description for polar.testdata.enabled."
+    }
+  ] }

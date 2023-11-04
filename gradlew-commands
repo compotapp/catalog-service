@@ -1,0 +1,4 @@
+./gradlew bootRun
+./gradlew bootJar
+./gradlew clear
+./gradlew build
