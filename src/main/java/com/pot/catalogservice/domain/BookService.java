@@ -40,6 +40,8 @@ public class BookService {
                             book.title(),
                             book.author(),
                             book.price(),
+                            existingBook.createdDate(),//Использует дату создания существующей записи книги.
+                            existingBook.lastModifiedDate(),//Использует дату последнего изменения существующей записи книги. Он будет автоматически обновлен Spring Data, если операция завершится успешно
                             existingBook.version());//Использует версию существующей книги, которая будет увеличена автоматически в случае успеха операции обновления
                     return bookRepository.save(bookToUpdate);
                 })
