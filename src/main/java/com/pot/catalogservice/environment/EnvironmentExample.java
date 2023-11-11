@@ -6,7 +6,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConfigurationProperties(prefix = "polar")
+@ConfigurationProperties(prefix = "polar") // + этой аннотации в том, что она автоматически обновляет настройки через actuator и не надо ставить аннотацию @RefreshScope
 public class EnvironmentExample {
 
     private final Environment environment;
