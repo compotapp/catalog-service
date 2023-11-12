@@ -1,0 +1,113 @@
+#Название рабочего процесса
+name: Commit Stage
+#Рабочий процесс запускается, когда новый код отправляется в репозиторий
+on: push
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: compotapp/catalog-service
+  VERSION: latest
+
+jobs:
+  #Уникальный идентификатор вакансии
+  build:
+    #Понятное имя задания
+    name: Build and Test
+    #Тип машины, на которой должно выполняться задание
+    runs-on: ubuntu-22.04
+    #Разрешения, предоставленные заданию
+    permissions:
+      #Разрешение на проверку текущего репозитория Git
+      contents: read
+      # Разрешение на отправку событий безопасности в GitHub
+      security-events: write
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - name: Code vulnerability scanning
+        uses: anchore/scan-action@v3
+        id: scan
+        with:
+          path: "${{ github.workspace }}"
+          fail-build: false
+          severity-cutoff: high
+          acs-report-enable: true
+      - name: Upload vulnerability report
+        uses: github/codeql-action/upload-sarif@v2
+        if: success() || failure()
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
+      - name: Build, unit tests and integration tests
+        run: |
+          chmod +x gradlew
+          ./gradlew build
+  #Уникальный идентификатор вакансии
+  package:
+    name: Package and Publish
+    #Запускает задание только в основной ветке
+    if: ${{ github.ref == 'refs/heads/main' }}
+    #Выполняет работу, только если работа «сборка» успешно завершается
+    needs: [ build ]
+    #Запускает работу на машине Ubuntu 22.04
+    runs-on: ubuntu-22.04
+    permissions:
+      #Разрешение на проверку текущего репозитория Git
+      contents: read
+      #Разрешение на загрузку изображений в реестр контейнеров GitHub
+      packages: write
+      #Разрешение отправлять события безопасности на GitHub
+      security-events: write
+    steps:
+      - name: Checkout source code
+        #Проверяет текущий репозиторий Git (сервис-каталог)
+        uses: actions/checkout@v3
+      - name: Set up JDK
+        #Устанавливает и настраивает среду выполнения Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - name: Build container image
+        #Полагается на интеграцию Buildpacks в Spring Boot для создания образа контейнера и определяет имя кандидата на выпуск
+        run: |
+          chmod +x gradlew
+          ./gradlew bootBuildImage
+          --imageName
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+      - name: OCI image vulnerability scanning
+        #Сканирует образ релиз-кандидата на наличие уязвимостей с помощью grype
+        uses: anchore/scan-action@v3
+        id: scan
+        #Изображение для сканирования является кандидатом на выпуск
+        with:
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+          #Сборка не завершится неудачно, если в образе будут обнаружены уязвимости
+          fail-build: false
+          severity-cutoff: high
+          acs-report-enable: true
+      - name: Upload vulnerability report
+        #Загружает отчет об уязвимостях безопасности на GitHub (формат SARIF).
+        uses: github/codeql-action/upload-sarif@v2
+        if: success() || failure()
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
+      - name: Log into container registry
+        #Аутентификация с помощью реестра контейнеров GitHub
+        uses: docker/login-action@v2
+        with:
+          #Значение реестра, определенное ранее в переменной среды
+          registry: ${{ env.REGISTRY }}
+          #Имя пользователя GitHub текущего пользователя, предоставленное действиями GitHub
+          username: ${{ github.actor }}
+          #Токен, необходимый для аутентификации в реестре, предоставлен GitHub Actions
+          password: ${{ secrets.GITHUB_TOKEN }}
+          #Подталкивает кандидата в релиза в реестр
+      - name: Publish container image
+        run: docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
