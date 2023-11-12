@@ -1,0 +1,11 @@
+#❶ Базовое изображение Ubuntu с распределением Eclipse Temurin предварительно установленного JRE
+#❷ Изменяет текущий рабочий каталог на «рабочую область»
+#❸ Создает аргумент, указывающий расположение JAR-файла приложения в вашем проекте
+#❹ Копирует файл JAR приложения с локального компьютера в образ
+#❺ Устанавливает точку входа в контейнер для запуска приложения
+
+FROM eclipse-temurin:17
+WORKDIR workspace
+ARG JAR_FILE=build/libs/*.jar
+COPY ${JAR_FILE} catalog-service.jar
+ENTRYPOINT ["java", "-jar", "catalog-service.jar"]
