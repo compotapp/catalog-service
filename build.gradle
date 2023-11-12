@@ -49,7 +49,7 @@ bootRun {
 
 bootBuildImage {
     imageName = "${project.name}"
-    environment = ["BP_JVM_VERSION" : "17.*"]
+    environment = ["BP_JVM_VERSION": "17.*"]
     docker {
         publishRegistry {
             username = project.findProperty("registryUsername")
