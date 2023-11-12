@@ -28,6 +28,7 @@ public record Book(
         @NotNull(message = "The book price must be defined.")
         @Positive(message = "The book price must be greater than zero.")
         Double price,
+        String publisher,
         @CreatedDate //Когда сущность была создана
         Instant createdDate,
         @LastModifiedDate //Когда объект был последний раз изменен
@@ -35,8 +36,8 @@ public record Book(
         @Version //Номер версии объекта, который используется для оптимистической блокировки
         int version
 ) {
-    public static Book of(String isbn, String title, String author, Double price) {
-        return new Book(null, isbn, title, author, price, null, null, 0); //Объект считается новым, если его идентификатор равен нулю, а версия равна 0
+    public static Book of(String isbn, String title, String author, Double price, String publisher) {
+        return new Book(null, isbn, title, author, price, publisher, null, null, 0); //Объект считается новым, если его идентификатор равен нулю, а версия равна 0
     }
 }
 
