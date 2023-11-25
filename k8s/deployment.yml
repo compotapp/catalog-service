@@ -1,0 +1,52 @@
+#Версия API для развертывания объектов
+apiVersion: apps/v1
+#Тип объекта для создания
+kind: Deployment
+metadata:
+  #Имя развертывания
+  name: catalog-service
+  #Набор ярлыков, прикрепленных к развертыванию
+  labels:
+    #Это развертывание помечено как «app=catalog-service».
+    app: catalog-service
+spec:
+  #Сколько реплик Pod следует развернуть
+  replicas: 2
+  #Определяет метки, используемые для выбора модулей для масштабирования.
+  selector:
+    matchLabels:
+      app: catalog-service
+  #Шаблон для создания пода
+  template:
+    metadata:
+      #Метки, прикрепленные к объекту Pod. Они должны соответствовать тем, которые используются в качестве селекторов.
+      labels:
+        app: catalog-service
+    spec:
+      #Список контейнеров в модуле (в данном случае один).
+      containers:
+        #Имя модуля
+      - name: catalog-service
+        #Образ, используемый для запуска контейнера. Никакой тег не определен, поэтому «последний» будет использоваться неявно.
+        image: catalog-service
+        #Указывает Kubernetes извлечь образ из реестра контейнеров, только если он еще не присутствует локально.
+        imagePullPolicy: IfNotPresent
+        lifecycle:
+          #Заставляет Kubernetes ждать 5 секунд перед отправкой сигнала SIGTERM в под.
+          preStop:
+            exec:
+              command: [ "sh", "-c", "sleep 5" ]
+        ports:
+            #Порты, открытые контейнером
+          - containerPort: 9001
+        #Список переменных среды, передаваемых в модуль Pod
+        env:
+          #Переменная среды Paketo Buildpacks для настройки количества потоков для расчета памяти.
+          - name: BPL_JVM_THREAD_COUNT
+            value: "50"
+          #Значение свойства Spring.datasource.url, указывающее на ранее развернутый модуль PostgreSQL.
+          - name: SPRING_DATASOURCE_URL
+            value: jdbc:postgresql://polar-postgres/polardb_catalog
+          #Включает профиль Spring «testdata».
+          - name: SPRING_PROFILES_ACTIVE
+            value: testdata

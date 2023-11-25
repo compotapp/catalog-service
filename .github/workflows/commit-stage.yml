@@ -23,30 +23,55 @@ jobs:
       security-events: write
     steps:
       - name: Checkout source code
+        #Проверяет текущий репозиторий Git (сервис-каталог).
         uses: actions/checkout@v3
       - name: Set up JDK
+        #Устанавливает и настраивает среду выполнения Java.
         uses: actions/setup-java@v3
+        #Определяет, какую версию, распространение и тип кэша использовать.
         with:
           distribution: temurin
           java-version: 17
           cache: gradle
       - name: Code vulnerability scanning
+        #Сканирует кодовую базу на наличие уязвимостей с помощью grype.
         uses: anchore/scan-action@v3
+        #Присваивает идентификатор текущему шагу, чтобы на него можно было ссылаться в последующих шагах.
         id: scan
         with:
+          #Путь к извлеченному репозиторию.
           path: "${{ github.workspace }}"
+          #Следует ли завершать сборку в случае уязвимостей безопасности.
           fail-build: false
+          #Минимальная категория безопасности, которую следует рассматривать как ошибку (низкая, средняя, высокая, критическая).
           severity-cutoff: high
+          #Включить ли формирование отчета после завершения сканирования
           acs-report-enable: true
       - name: Upload vulnerability report
+        #Загружает отчет об уязвимостях безопасности на GitHub (формат SARIF).
         uses: github/codeql-action/upload-sarif@v2
+        #Загружает отчет, даже если предыдущий шаг не удался.
         if: success() || failure()
         with:
+          #Извлекает отчет из результатов предыдущего шага.
           sarif_file: ${{ steps.scan.outputs.sarif }}
       - name: Build, unit tests and integration tests
+        #Обеспечивает исполняемость оболочки Gradle, устраняя проблемы несовместимости с Windows.
+        #Запускает задачу сборки Gradle, которая компилирует базу кода и запускает модульные и интеграционные тесты.
         run: |
           chmod +x gradlew
           ./gradlew build
+      - name: Validate Kubernetes manifests
+        #Действие, позволяющее установить полезные инструменты для работы с Kubernetes.
+        uses: stefanprodan/kube-tools@v1
+        with:
+          #Включает Kubernetes CLI в установку.
+          kubectl: 1.24.3
+          #Включает в установку Кубевал
+          kubeval: 0.16.1
+          #Использует Kubeval для проверки манифестов Kubernetes в папке k8s.
+          command: |
+            kubeval --strict -d k8s
   #Уникальный идентификатор вакансии
   package:
     name: Package and Publish
